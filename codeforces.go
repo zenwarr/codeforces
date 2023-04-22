@@ -66,13 +66,13 @@ func TestFileWithLineComparator(t *testing.T, file string, solver func(in *bufio
 		resultLines := strings.Split(result, "\n")
 		expectedLines := strings.Split(expected, "\n")
 
-		assert.Equal(t, len(expectedLines), len(resultLines), fmt.Sprintf("testing file %s, result line count", file))
+		assert.Equal(t, len(expectedLines), len(resultLines), "result line count does not match")
 
 		for i := 0; i < len(resultLines); i++ {
 			assert.True(
 				t,
 				lineComparator(expectedLines[i], resultLines[i]),
-				fmt.Sprintf("testing file %s, line %s == %s", file, expectedLines[i], resultLines[i]),
+				fmt.Sprintf("line comparator failed for line %d: line from expected is %q, line from result is %q", i, expectedLines[i], resultLines[i]),
 			)
 		}
 	})
