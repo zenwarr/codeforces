@@ -56,7 +56,7 @@ In each test, the entire output of your solve function is going to be compared w
 
 ## Run a single test
 
-You can run a single test case by specifying its number in `Test` function:
+You can run a single test case by specifying its file name in `TestFile` function:
 
 ```go
 func TestSolution(t *testing.T) {
