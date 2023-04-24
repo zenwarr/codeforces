@@ -56,7 +56,7 @@ In each test, the entire output of your solve function is going to be compared w
 
 ## Run a single test
 
-You can run a single test case by specifying its number in `Test` function:
+You can run a single test case by specifying its file name in `TestFile` function:
 
 ```go
 func TestSolution(t *testing.T) {
@@ -92,6 +92,6 @@ func TestSolution(t *testing.T) {
 }
 ```
 
-Each line in the test case is going to be checked against the corresponding line in `.a` file using this comparator, and the test is going to fail if the comparator returns `false` for any line.
+Each line in your solution output is going to be checked against the corresponding line in `.a` file using this comparator, and the test is going to fail if the comparator returns `false` for any line.
 
 The comparator does not know anything about internal structure of the output, so it is only usable for tests which can be compared line-by-line using the same condition.
