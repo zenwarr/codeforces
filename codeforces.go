@@ -11,10 +11,34 @@ import (
 	"testing"
 )
 
-const testDirectory = "testdata"
+type Tester struct {
+	t                *testing.T
+	solver           func(in *bufio.Reader, out *bufio.Writer)
+	lineComparator   func(expected, actual string) bool
+	outputNormalizer func(output string) string
+	testDataDir      string
+}
 
-func Test(t *testing.T, solver func(in *bufio.Reader, out *bufio.Writer)) {
-	files, err := os.ReadDir(testDirectory)
+func New(t *testing.T, solver func(in *bufio.Reader, out *bufio.Writer)) *Tester {
+	return &Tester{
+		t:           t,
+		solver:      solver,
+		testDataDir: "testdata",
+	}
+}
+
+func (tester *Tester) WithLineComparator(lineComparator func(expected, actual string) bool) *Tester {
+	tester.lineComparator = lineComparator
+	return tester
+}
+
+func (tester *Tester) WithOutputNormalizer(outputNormalizer func(output string) string) *Tester {
+	tester.outputNormalizer = outputNormalizer
+	return tester
+}
+
+func (tester *Tester) Test() {
+	files, err := os.ReadDir(tester.testDataDir)
 	if err != nil {
 		panic(fmt.Errorf("reading directory: %w", err))
 	}
@@ -24,44 +48,25 @@ func Test(t *testing.T, solver func(in *bufio.Reader, out *bufio.Writer)) {
 			continue
 		}
 
-		TestFile(t, file.Name(), solver)
+		tester.TestFile(file.Name())
 	}
 }
 
-func TestWithLineComparator(t *testing.T, solver func(in *bufio.Reader, out *bufio.Writer), lineComparator func(expected, actual string) bool) {
-	files, err := os.ReadDir(testDirectory)
-	if err != nil {
-		panic(fmt.Errorf("reading directory: %w", err))
-	}
-
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".a") {
-			continue
-		}
-
-		TestFileWithLineComparator(t, file.Name(), solver, lineComparator)
-	}
-}
-
-func TestFile(t *testing.T, file string, solver func(in *bufio.Reader, out *bufio.Writer)) {
-	t.Run(file, func(t *testing.T) {
-		t.Parallel()
-
-		result := cleanResult(getResult(path.Join(testDirectory, file), solver))
-		expected := cleanResult(getExpected(path.Join(testDirectory, file) + ".a"))
-
-		assert.Equal(t, expected, result, fmt.Sprintf("testing file %s", file))
-	})
-}
-
-func TestFileWithLineComparator(t *testing.T, file string, solver func(in *bufio.Reader, out *bufio.Writer), lineComparator func(expected, actual string) bool) {
-	t.Run(file, func(t *testing.T) {
+func (tester *Tester) TestFile(file string) {
+	tester.t.Run(file, func(t *testing.T) {
 		t.Parallel()
 
 		fmt.Printf("testing file %s\n", file)
 
-		result := cleanResult(getResult(path.Join(testDirectory, file), solver))
-		expected := cleanResult(getExpected(path.Join(testDirectory, file) + ".a"))
+		result := cleanResult(getResult(path.Join(tester.testDataDir, file), tester.solver))
+		if tester.outputNormalizer != nil {
+			result = tester.outputNormalizer(result)
+		}
+
+		expected := cleanResult(getExpected(path.Join(tester.testDataDir, file) + ".a"))
+		if tester.outputNormalizer != nil {
+			expected = tester.outputNormalizer(expected)
+		}
 
 		resultLines := strings.Split(result, "\n")
 		expectedLines := strings.Split(expected, "\n")
@@ -69,11 +74,15 @@ func TestFileWithLineComparator(t *testing.T, file string, solver func(in *bufio
 		assert.Equal(t, len(expectedLines), len(resultLines), "result line count does not match")
 
 		for i := 0; i < len(resultLines); i++ {
-			assert.True(
-				t,
-				lineComparator(expectedLines[i], resultLines[i]),
-				fmt.Sprintf("line comparator failed for line %d: line from expected is %q, line from result is %q", i, expectedLines[i], resultLines[i]),
-			)
+			if tester.lineComparator != nil {
+				assert.True(
+					t,
+					tester.lineComparator(expectedLines[i], resultLines[i]),
+					fmt.Sprintf("line comparator failed for line %d: line from expected is %q, line from result is %q", i, expectedLines[i], resultLines[i]),
+				)
+			} else {
+				assert.Equal(t, expected, result, fmt.Sprintf("testing file %s", file))
+			}
 		}
 	})
 }

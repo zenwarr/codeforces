@@ -40,7 +40,7 @@ import (
 )
 
 func TestSolution(t *testing.T) {
-    codeforces.Test(t, solve) // pass your solve function here
+	codeforces.New(t, solve).Test()
 }
 ```
 
@@ -60,7 +60,7 @@ You can run a single test case by specifying its file name in `TestFile` functio
 
 ```go
 func TestSolution(t *testing.T) {
-    codeforces.TestFile(t, "01", solve) // run only "01" test case
+    codeforces.New(t, solve).TestFile("01") // run only "01" test case
 }
 ```
 
@@ -75,7 +75,7 @@ You can write something like this:
 
 ```go
 func TestSolution(t *testing.T) {
-    codeforces.TestWithLineComparator(t, solve, func(expected, actual string) bool {
+    codeforces.New(t, solve).WithLineComparator(func(expected, actual string) bool {
 		// check both values are odd or even
 		expectedNum, err := strconv.Atoi(expected)
 		if err != nil {
@@ -88,10 +88,27 @@ func TestSolution(t *testing.T) {
 		}
 		
 		return expectedNum%2 == actualNum%2
-    })
+    }).Test()
 }
 ```
 
 Each line in your solution output is going to be checked against the corresponding line in `.a` file using this comparator, and the test is going to fail if the comparator returns `false` for any line.
 
 The comparator does not know anything about internal structure of the output, so it is only usable for tests which can be compared line-by-line using the same condition.
+
+## Output normalization
+
+Some tasks allow you to output answer lines in any order, so you need, for example, to sort them before comparing with `.a` file.
+This can be tricky, because sometimes output contains several groups of lines which should be sorted separately.
+In this case you can provide a custom output normalizer function that is called both on actual and expected output before comparing them.
+
+```go
+func TestSolution(t *testing.T) {
+    codeforces.New(t, solve).WithOutputNormalizer(func(output string) string {
+		lines := strings.Split(output, "\n")
+		// can be a more complex sorting algorithm with respect for groups of lines
+		strings.Sort(lines)
+		return strings.Join(lines, "\n")
+    }).Test()
+}
+```
